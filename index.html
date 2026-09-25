@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StudySync - P2P Study Room & Chat</title>
+  <title>StudySync Ultimate - P2P Study Room</title>
 
   <!-- 1. Firebase Core & Realtime Database SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-  <!-- 2. PeerJS SDK (WebRTC Video/Audio & Data Connection) -->
+  <!-- 2. PeerJS SDK (WebRTC Audio/Video & Data Connection) -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
   <style>
@@ -28,10 +28,10 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     body { background-color: var(--bg); color: var(--text); padding: 1rem; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
 
-    .card { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); width: 100%; max-width: 750px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .card { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); width: 100%; max-width: 800px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .hidden { display: none !important; }
 
-    h2, h3 { margin-bottom: 0.75rem; color: var(--primary); }
+    h2, h3, h4 { color: var(--primary); margin-bottom: 0.5rem; }
     input, button, textarea { padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); font-size: 0.95rem; outline: none; }
     button { background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; transition: background 0.2s; }
     button:hover { background: var(--primary-hover); }
@@ -46,12 +46,12 @@
     .btn-secondary { background: #64748b; width: 100%; }
     .btn-secondary:hover { background: #475569; }
 
-    /* WhatsApp-style Chat UI */
+    /* WhatsApp Chat UI */
     .chat-box {
       background: var(--wa-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
-      height: 220px;
+      height: 240px;
       overflow-y: auto;
       padding: 0.75rem;
       display: flex;
@@ -71,53 +71,43 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
-    .message.sent {
-      align-self: flex-end;
-      background: var(--wa-sent);
-      border-top-right-radius: 0;
-    }
+    .message.sent { align-self: flex-end; background: var(--wa-sent); border-top-right-radius: 0; }
+    .message.received { align-self: flex-start; background: var(--wa-received); border-top-left-radius: 0; }
+    .message .sender-tag { font-size: 0.7rem; font-weight: bold; color: #4338ca; margin-bottom: 2px; }
+    .message .meta { font-size: 0.65rem; color: #667781; text-align: right; margin-top: 4px; }
 
-    .message.received {
-      align-self: flex-start;
-      background: var(--wa-received);
-      border-top-left-radius: 0;
-    }
-
-    .message .meta {
-      font-size: 0.65rem;
-      color: #667781;
-      text-align: right;
-      margin-top: 4px;
-    }
+    .sticker-msg { font-size: 3rem; text-align: center; }
+    .audio-player { width: 220px; margin-top: 4px; }
 
     .file-attachment {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(0,0,0,0.05);
-      padding: 6px 10px;
-      border-radius: 6px;
-      margin-top: 4px;
-      text-decoration: none;
-      color: var(--primary);
-      font-weight: 600;
-      font-size: 0.85rem;
+      display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.05);
+      padding: 6px 10px; border-radius: 6px; margin-top: 4px; text-decoration: none;
+      color: var(--primary); font-weight: 600; font-size: 0.85rem;
     }
 
-    .chat-input-row { display: flex; gap: 6px; margin-bottom: 1rem; align-items: center; }
+    .chat-input-row { display: flex; gap: 6px; margin-bottom: 0.5rem; align-items: center; }
     .chat-input-row input[type="text"] { flex: 1; }
-    .file-btn { background: #e2e8f0; color: #334155; padding: 0.75rem; border-radius: 8px; cursor: pointer; font-size: 1.1rem; }
-    .file-btn:hover { background: #cbd5e1; }
 
-    textarea { width: 100%; height: 100px; resize: vertical; font-family: inherit; }
+    .icon-btn { background: #e2e8f0; color: #334155; padding: 0.65rem; border-radius: 8px; cursor: pointer; font-size: 1.1rem; border: none; }
+    .icon-btn:hover { background: #cbd5e1; }
+    .recording { background: #ef4444 !important; color: white !important; animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+    /* Sticker Selector */
+    .sticker-panel { display: flex; gap: 10px; background: #f1f5f9; padding: 8px; border-radius: 8px; margin-bottom: 0.5rem; }
+    .sticker-item { font-size: 1.8rem; cursor: pointer; transition: transform 0.1s; }
+    .sticker-item:hover { transform: scale(1.2); }
+
+    textarea { width: 100%; height: 90px; resize: vertical; font-family: inherit; }
   </style>
 </head>
 <body>
 
   <!-- Entry Screen -->
   <div class="card" id="login-screen">
-    <h2>🎓 StudySync P2P Room</h2>
-    <p style="color: #64748b; margin-bottom: 1rem;">Generate a 4-digit code or join your study partner's room.</p>
+    <h2>🎓 StudySync P2P Workspace</h2>
+    <p style="color: #64748b; margin-bottom: 1rem;">Create a 4-digit code or enter your partner's code to connect.</p>
 
     <button style="width:100%;" onclick="createRoom()">Create New Room Code (Host)</button>
 
@@ -127,11 +117,11 @@
     <button style="width:100%; margin-top:0.5rem;" onclick="joinRoom()">Join Partner's Room</button>
   </div>
 
-  <!-- Active Study Room Screen -->
+  <!-- Active Room Screen -->
   <div class="card hidden" id="room-screen">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
       <h3>Room Code: <span id="display-code" style="color: var(--primary);">----</span></h3>
-      <span style="font-size: 0.85rem; color: #059669; font-weight: 600;">● Live Connection</span>
+      <span id="role-badge" style="font-size: 0.85rem; color: #059669; font-weight: 600;">● Active</span>
     </div>
 
     <!-- P2P Video Calling -->
@@ -151,21 +141,36 @@
       <button class="btn-secondary" onclick="toggleVideo()">Camera On / Off</button>
     </div>
 
-    <!-- WhatsApp Chat Interface with PDF Upload -->
+    <!-- WhatsApp Chat Interface -->
     <h4>💬 Chat & File Sharing</h4>
     <div class="chat-box" id="chat-box"></div>
+
+    <!-- Quick Sticker Picker -->
+    <div class="sticker-panel">
+      <span class="sticker-item" onclick="sendSticker('👍')">👍</span>
+      <span class="sticker-item" onclick="sendSticker('🔥')">🔥</span>
+      <span class="sticker-item" onclick="sendSticker('📚')">📚</span>
+      <span class="sticker-item" onclick="sendSticker('💯')">💯</span>
+      <span class="sticker-item" onclick="sendSticker('☕')">☕</span>
+      <span class="sticker-item" onclick="sendSticker('🎉')">🎉</span>
+    </div>
+
     <div class="chat-input-row">
       <!-- File Upload Button -->
-      <label class="file-btn" title="Send PDF or Document">
+      <label class="icon-btn" title="Send PDF / File">
         📎
         <input type="file" id="file-input" style="display: none;" onchange="sendFile(this)">
       </label>
+
+      <!-- Voice Message Button -->
+      <button id="record-btn" class="icon-btn" title="Hold/Click to Record Voice Note" onclick="toggleVoiceRecording()">🎙️</button>
+
       <input type="text" id="message-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
       <button onclick="sendMessage()">Send</button>
     </div>
 
-    <!-- Live Collaborative Notes -->
-    <h4>📝 Shared Notes</h4>
+    <!-- Shared Notes -->
+    <h4 style="margin-top: 1rem;">📝 Shared Notes</h4>
     <textarea id="shared-notes" placeholder="Type notes here... updates sync in real-time!" oninput="syncNotes()"></textarea>
   </div>
 
@@ -188,18 +193,28 @@
     let roomCode = null;
     let peer = null;
     let localStream = null;
+    let myRole = "User";
     let userId = 'user_' + Math.floor(Math.random() * 1000);
+
+    // Audio Recorder Variables
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+
+    // Request Browser Notification Permission
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
 
     async function initP2P() {
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         document.getElementById('local-video').srcObject = localStream;
       } catch (err) {
-        alert("Camera and Microphone access required!");
+        alert("Camera and Microphone permissions are required!");
         console.error(err);
       }
 
-      // Public STUN servers included for mobile network stability
       peer = new Peer({
         config: {
           iceServers: [
@@ -221,6 +236,7 @@
     }
 
     async function createRoom() {
+      myRole = "Host";
       const peerId = await initP2P();
       roomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
@@ -233,6 +249,7 @@
     }
 
     async function joinRoom() {
+      myRole = "Partner";
       const inputCode = document.getElementById('room-code-input').value.trim();
       if (!inputCode) return alert('Please enter a room code!');
 
@@ -255,8 +272,9 @@
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('room-screen').classList.remove('hidden');
       document.getElementById('display-code').innerText = roomCode;
+      document.getElementById('role-badge').innerText = `● Connected as ${myRole}`;
 
-      // Listen for Live Notes
+      // Sync Notes
       const notesArea = document.getElementById('shared-notes');
       db.ref('hybrid_rooms/' + roomCode + '/notes').on('value', (snapshot) => {
         if (document.activeElement !== notesArea) {
@@ -264,59 +282,105 @@
         }
       });
 
-      // Listen for Realtime Messages & Files
+      // Listen for Messages, Voice Notes, Files & Stickers
       db.ref('hybrid_rooms/' + roomCode + '/messages').on('child_added', (snapshot) => {
         const msg = snapshot.val();
         renderMessage(msg);
+        
+        // Push Notification if message is from the other person
+        if (msg.senderId !== userId) {
+          triggerNotification(msg);
+        }
       });
     }
 
-    // Text Message Handler
+    // 1. Send Text Message
     function sendMessage() {
       const input = document.getElementById('message-input');
       const text = input.value.trim();
       if (!text || !roomCode) return;
 
-      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      db.ref('hybrid_rooms/' + roomCode + '/messages').push({
-        senderId: userId,
-        text: text,
-        timestamp: time
-      });
-
+      pushToFirebase({ type: 'text', text: text });
       input.value = '';
     }
 
-    // PDF / File Upload Handler
+    // 2. Send Sticker Message
+    function sendSticker(emoji) {
+      if (!roomCode) return;
+      pushToFirebase({ type: 'sticker', sticker: emoji, text: `Sent a sticker ${emoji}` });
+    }
+
+    // 3. Send PDF / Document File
     function sendFile(fileInput) {
       const file = fileInput.files[0];
       if (!file || !roomCode) return;
 
-      if (file.size > 5 * 1024 * 1024) {
-        return alert("File is too large! Please choose a file under 5MB.");
-      }
+      if (file.size > 5 * 1024 * 1024) return alert("File is too large! Maximum limit is 5MB.");
 
       const reader = new FileReader();
       reader.onload = function (e) {
-        const fileData = e.target.result; // Base64 data string
-        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        db.ref('hybrid_rooms/' + roomCode + '/messages').push({
-          senderId: userId,
-          text: `📄 Sent file: ${file.name}`,
-          fileUrl: fileData,
-          fileName: file.name,
-          timestamp: time
+        pushToFirebase({
+          type: 'file',
+          text: `📄 Shared a file: ${file.name}`,
+          fileUrl: e.target.result,
+          fileName: file.name
         });
-
-        fileInput.value = ''; // Reset input
+        fileInput.value = '';
       };
-
       reader.readAsDataURL(file);
     }
 
-    // Render Chat Bubbles & File Downloads
+    // 4. Record & Send Voice Notes
+    async function toggleVoiceRecording() {
+      const recordBtn = document.getElementById('record-btn');
+
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+          mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              pushToFirebase({
+                type: 'voice',
+                text: '🎙️ Voice Message',
+                audioUrl: reader.result
+              });
+            };
+            reader.readAsDataURL(audioBlob);
+          };
+
+          mediaRecorder.start();
+          isRecording = true;
+          recordBtn.classList.add('recording');
+          recordBtn.innerText = "⏹️";
+        } catch (err) {
+          alert("Microphone permission required for voice notes.");
+        }
+      } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        recordBtn.classList.remove('recording');
+        recordBtn.innerText = "🎙️";
+      }
+    }
+
+    // Push payload to Firebase
+    function pushToFirebase(data) {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      db.ref('hybrid_rooms/' + roomCode + '/messages').push({
+        senderId: userId,
+        senderRole: myRole,
+        timestamp: time,
+        ...data
+      });
+    }
+
+    // Render Chat Content to Screen
     function renderMessage(msg) {
       const chatBox = document.getElementById('chat-box');
       const msgDiv = document.createElement('div');
@@ -324,18 +388,25 @@
 
       msgDiv.className = `message ${isSelf ? 'sent' : 'received'}`;
 
-      let fileHtml = '';
-      if (msg.fileUrl) {
-        fileHtml = `
-          <a class="file-attachment" href="${msg.fileUrl}" download="${msg.fileName}">
-            ⬇️ Download ${msg.fileName}
-          </a>
+      let bodyContent = `<div>${msg.text}</div>`;
+
+      if (msg.type === 'sticker') {
+        bodyContent = `<div class="sticker-msg">${msg.sticker}</div>`;
+      } else if (msg.type === 'file') {
+        bodyContent = `
+          <div>${msg.text}</div>
+          <a class="file-attachment" href="${msg.fileUrl}" download="${msg.fileName}">⬇️ Download ${msg.fileName}</a>
+        `;
+      } else if (msg.type === 'voice') {
+        bodyContent = `
+          <div>${msg.text}</div>
+          <audio class="audio-player" controls src="${msg.audioUrl}"></audio>
         `;
       }
 
       msgDiv.innerHTML = `
-        <div>${msg.text}</div>
-        ${fileHtml}
+        <div class="sender-tag">${isSelf ? 'You' : msg.senderRole}</div>
+        ${bodyContent}
         <div class="meta">${msg.timestamp}</div>
       `;
 
@@ -343,32 +414,20 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function handleKeyPress(e) {
-      if (e.key === 'Enter') sendMessage();
-    }
-
-    function syncNotes() {
-      const text = document.getElementById('shared-notes').value;
-      db.ref('hybrid_rooms/' + roomCode + '/notes').set(text);
-    }
-
-    function toggleAudio() {
-      if (!localStream) return;
-      const track = localStream.getAudioTracks()[0];
-      if (track) {
-        track.enabled = !track.enabled;
-        alert(`Microphone ${track.enabled ? 'Enabled' : 'Muted'}`);
+    // Trigger Notification Popup
+    function triggerNotification(msg) {
+      if (Notification.permission === "granted") {
+        new Notification(`New message from ${msg.senderRole}`, {
+          body: msg.text || "Sent a media attachment",
+          icon: "https://cdn-icons-png.flaticon.com/512/732/732200.png"
+        });
       }
     }
 
-    function toggleVideo() {
-      if (!localStream) return;
-      const track = localStream.getVideoTracks()[0];
-      if (track) {
-        track.enabled = !track.enabled;
-        alert(`Camera ${track.enabled ? 'Enabled' : 'Disabled'}`);
-      }
-    }
+    function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
+    function syncNotes() { db.ref('hybrid_rooms/' + roomCode + '/notes').set(document.getElementById('shared-notes').value); }
+    function toggleAudio() { if (localStream) localStream.getAudioTracks()[0].enabled = !localStream.getAudioTracks()[0].enabled; }
+    function toggleVideo() { if (localStream) localStream.getVideoTracks()[0].enabled = !localStream.getVideoTracks()[0].enabled; }
   </script>
 </body>
 </html>
